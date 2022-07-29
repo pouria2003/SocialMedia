@@ -33,8 +33,7 @@ public class MyProfile {
             System.out.println("2 - followers");
             System.out.println("3 - followings");
             System.out.println("4 - new post");
-            System.out.println("5 - chats");
-            System.out.println("6 - send message");
+            System.out.println("5 - send message");
 
             if(invalid_option)
                 System.out.println(UI.ANSI_RED + "invalid option given" + UI.ANSI_RESET);
@@ -43,7 +42,7 @@ public class MyProfile {
             try {
                 user_option = Integer.parseInt(UI.scanner.nextLine());
 
-                invalid_option = user_option < 0 || user_option > 4;
+                invalid_option = user_option < 0 || user_option > 5;
 
             } catch (NumberFormatException ex) {
                 invalid_option = true;

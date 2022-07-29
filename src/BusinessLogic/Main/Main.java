@@ -24,6 +24,7 @@ public class Main {
     private static Event event;
     private static User searched_user;
     private static boolean my_post; // false means other users post or comment
+    private static String chat_name; // save current chat name
 
     public enum UserRequest {
         START_PAGE,
@@ -44,6 +45,13 @@ public class Main {
         REPLY,
         COMMENTS,
         COMMENT,
+        CHATS,
+        SEARCH_CHAT,
+        MESSAGES,
+        NEW_MESSAGE,
+        NEW_CHAT,
+        SELECT_MESSAGE,
+        SELECTED_MESSAGE
     }
 
     /// main() here function as an event handler
@@ -76,8 +84,15 @@ public class Main {
                     case MY_POST -> myPost();
                     case REPLY -> reply();
                     case COMMENTS -> comments();
+                    case CHATS -> chats();
+                    case SEARCH_CHAT -> searchChat();
+                    case MESSAGES -> messages();
+                    case NEW_MESSAGE -> newMessage();
+                    case NEW_CHAT -> newChat();
+                    case SELECT_MESSAGE -> selectMessage();
                 }
             } catch (SQLException e) {
+                /// DeBug
                 e.printStackTrace();
                 System.out.println(e.getMessage());
                 UI.UI.dataBaseException();
@@ -163,6 +178,7 @@ public class Main {
         }
         try {
             user = DataBase.ReadUser.readUser(username, password);
+            System.out.println("username = " + user.getUsername() + " , pass = " + user.getPassword());
             response = () -> UI.HomePage.homePage();
         } catch (UsernameNotExistException ex) {
             response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.USERNAME_NOT_FOUND);
@@ -273,6 +289,9 @@ public class Main {
         else if(user_option == 4) {
             response = () -> UI.MyProfile.newPost(false);
         }
+        else if(user_option == 5) {
+            response = () -> UI.Chat.chats(DataBase.Chat.chats(user.getUsername()), user.getUsername());
+        }
     }
 
     private static void myFollowersList() {
@@ -292,6 +311,8 @@ public class Main {
                 other_user.removeFollowing();
 
             } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
                 UI.UI.dataBaseException();
             }
         }
@@ -312,6 +333,8 @@ public class Main {
                 user.removeFollowing();
                 other_user.removeFollower();
             } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
                 UI.UI.dataBaseException();
             }
         }
@@ -328,6 +351,7 @@ public class Main {
         catch (PostLengthException ex) {
             response = () -> UI.MyProfile.newPost(true);
         } catch (SQLException e) {
+            /// DeBug
             e.printStackTrace();
             UI.UI.dataBaseException();
         }
@@ -365,6 +389,8 @@ public class Main {
                         , DataBase.Post.doesLike(user.getUsername(), event.data[1]));
 
             } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
                 UI.UI.dataBaseException();
             }
         }
@@ -388,6 +414,8 @@ public class Main {
                     , DataBase.Post.doesLike(user.getUsername(), event.data[1]));
 
         } catch (SQLException e) {
+            /// DeBug
+            e.printStackTrace();
             UI.UI.dataBaseException();
         }
     }
@@ -422,6 +450,8 @@ public class Main {
             try {
                 DataBase.Post.like(user.getUsername(), event.data[1]);
             } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
                 UI.UI.dataBaseException();
             }
             response = () -> UI.MyProfile.myPost(DataBase.Post.post(event.data[1]));
@@ -432,6 +462,8 @@ public class Main {
                 user.deletePost();
                 response = () -> UI.MyProfile.myPosts(DataBase.Post.postsList(user.getUsername()));
             } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
                 UI.UI.dataBaseException();
             }
         }
@@ -444,6 +476,114 @@ public class Main {
             response = () -> UI.Post.comments(DataBase.Post.repliesList(event.data[1])
                     , DataBase.Post.post(event.data[1]));
         }
+    }
+
+    private static void chats() {
+        String user_choice = event.data[0];
+        if(user_choice.equals("0")) {
+            response = () -> UI.MyProfile.myProfile(user, Profile.ProfileSituation.NORMAL);
+        } else if(user_choice.equals("1")) {
+            response = () -> UI.Chat.searchChat(false, null);
+        } else if(user_choice.equals("2")) {
+            response = () -> UI.Chat.newChat(false, null);
+        } else {
+            chat_name = user_choice;
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+        }
+    }
+
+    private static void searchChat() {
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.chats(DataBase.Chat.chats(user.getUsername()), user.getUsername());
+        }
+        else {
+            try {
+
+                if(DataBase.Chat.isChatExists(user.getUsername() + " " + event.data[0])) {
+                    chat_name = user.getUsername() + " " + event.data[0];
+                    response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+                }
+                else if(DataBase.Chat.isChatExists(event.data[0] + " " + user.getUsername())) {
+                    chat_name = event.data[0] + " " + user.getUsername();
+                    response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+                }
+                else {
+                    response = () -> UI.Chat.searchChat(true, event.data[0]);
+                }
+
+            } catch (SQLException e) {
+                /// DeBug
+                e.printStackTrace();
+                UI.UI.dataBaseException();
+            }
+        }
+    }
+
+    private static void messages() {
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.chats(DataBase.Chat.chats(user.getUsername()), user.getUsername());
+        }
+        else if(event.data[0].equals("1")) {
+            response = () -> UI.Chat.newMessage();
+        }
+    }
+
+    private static void newMessage() {
+        try {
+            DataBase.Chat.newMessage(event.data[0], user.getUsername(), -1, chat_name);
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+        } catch (SQLException e) {
+            /// DeBug
+            e.printStackTrace();
+            UI.UI.dataBaseException();
+        }
+    }
+
+    private static void newChat() {
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.chats(DataBase.Chat.chats(user.getUsername()), user.getUsername());
+        }
+        else {
+            try {
+                if(DataBase.Chat.isChatExists(user.getUsername() + " " + event.data[0])) {
+                    response = () -> UI.Chat.messages(DataBase.Chat.getMessages
+                            (user.getUsername() + " " + event.data[0]));
+                }
+                else if(DataBase.Chat.isChatExists(event.data[0] + " " + user.getUsername())) {
+                    response = () -> UI.Chat.messages(DataBase.Chat.getMessages
+                            (event.data[0] + " " + user.getUsername()));
+                }
+                else if(DataBase.Signup.isUsernameExist(event.data[0])) {
+                    DataBase.Chat.newChat(user.getUsername(), event.data[0]);
+                    chat_name = user.getUsername() + " " + event.data[0];
+                    response = () -> UI.Chat.messages(DataBase.Chat.
+                            getMessages(user.getUsername() + " " +event.data[0]));
+                }
+                else {
+                    response = () -> UI.Chat.newChat(true, event.data[0]);
+                }
+
+            } catch (SQLException e) {
+                // DeBug
+                e.printStackTrace();
+                response = () -> UI.MyProfile.myProfile(user, Profile.ProfileSituation.NORMAL);
+                UI.UI.dataBaseException();
+            }
+        }
+    }
+
+    private static void selectMessage() {
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+        }
+        else {
+            response = () -> UI.Chat.selectedMessage(DataBase.Chat.getMessage(chat_name,
+                    Integer.parseInt(event.data[0])));
+        }
+    }
+
+    private static void selectedMessage() {
+        
     }
 
     public static void exitProgram(int code) {
