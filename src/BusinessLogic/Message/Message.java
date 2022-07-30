@@ -4,12 +4,13 @@ public class Message {
     private final String message;
     private final String username;
     private final int id;
-    private int replied_to = -1;
+    private int replied_to;
 
     public Message(String message, String username, int id) {
         this.message = message;
         this.username = username;
         this.id = id;
+        this.replied_to = -1;
     }
 
     public Message(String message, String username, int id, int replied_to) {

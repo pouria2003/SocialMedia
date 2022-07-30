@@ -1,6 +1,7 @@
 package BusinessLogic.Main;
 
 import BusinessLogic.Event.Event;
+import BusinessLogic.Message.Message;
 import BusinessLogic.Post.Comment;
 import BusinessLogic.Post.Post;
 import BusinessLogic.User.User;
@@ -51,7 +52,8 @@ public class Main {
         NEW_MESSAGE,
         NEW_CHAT,
         SELECT_MESSAGE,
-        SELECTED_MESSAGE
+        SELECTED_MESSAGE,
+        REPLY_MESSAGE
     }
 
     /// main() here function as an event handler
@@ -90,6 +92,8 @@ public class Main {
                     case NEW_MESSAGE -> newMessage();
                     case NEW_CHAT -> newChat();
                     case SELECT_MESSAGE -> selectMessage();
+                    case SELECTED_MESSAGE -> selectedMessage();
+                    case REPLY_MESSAGE -> replyMessage();
                 }
             } catch (SQLException e) {
                 /// DeBug
@@ -178,7 +182,6 @@ public class Main {
         }
         try {
             user = DataBase.ReadUser.readUser(username, password);
-            System.out.println("username = " + user.getUsername() + " , pass = " + user.getPassword());
             response = () -> UI.HomePage.homePage();
         } catch (UsernameNotExistException ex) {
             response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.USERNAME_NOT_FOUND);
@@ -526,6 +529,9 @@ public class Main {
         else if(event.data[0].equals("1")) {
             response = () -> UI.Chat.newMessage();
         }
+        else if(event.data[0].equals("2")) {
+            response = () -> UI.Chat.selectMessage(DataBase.Chat.getMessages(chat_name));
+        }
     }
 
     private static void newMessage() {
@@ -583,11 +589,43 @@ public class Main {
     }
 
     private static void selectedMessage() {
-        
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+        }
+        else if(event.data[0].equals("1")) {
+            response = () -> UI.Chat.replyMessage(event.data[2], event.data[1]);
+        }
+
+    }
+
+    private static void replyMessage() {
+        try {
+            DataBase.Chat.newMessage(event.data[0], user.getUsername(),
+                    Integer.parseInt(event.data[1]), chat_name);
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+
+        } catch (SQLException e) {
+            // DeBug
+            e.printStackTrace();
+            response = () -> UI.MyProfile.myProfile(user, Profile.ProfileSituation.NORMAL);
+            UI.UI.dataBaseException();
+        }
     }
 
     public static void exitProgram(int code) {
         System.exit(code);
+    }
+
+    public static Message getMessage(int id) {
+        try {
+            return DataBase.Chat.getMessage(chat_name, id);
+        } catch (SQLException e) {
+            // DeBug
+            e.printStackTrace();
+            UI.UI.dataBaseException();
+            response = () -> MyProfile.myProfile(user, Profile.ProfileSituation.NORMAL);
+            return null;
+        }
     }
 
 }

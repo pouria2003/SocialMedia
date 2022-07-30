@@ -67,8 +67,20 @@ public class Chat {
             System.out.println(UI.ANSI_BLUE + "\n--------------------Messages--------------------\n" + UI.ANSI_RESET);
 
             for (int i = 0; i < messages.size(); ++i) {
-                System.out.println(messages.get(i).getUsername() + " : "
-                        + messages.get(i).getMessage());
+                if(messages.get(i).getRepliedTo() == -1) {
+                    System.out.println(messages.get(i).getUsername() + " : "
+                            + messages.get(i).getMessage());
+                }
+                else {
+                    try {
+                        System.out.println(messages.get(i).getUsername() + " : "
+                                + messages.get(i).getMessage() +
+                                "  ( replying to : " + Main.getMessage(messages.get(i).getRepliedTo()).getMessage() + " )");
+                    } catch (NullPointerException ex) {
+                        System.out.println(messages.get(i).getUsername() + " : "
+                                + messages.get(i).getMessage());
+                    }
+                }
             }
 
             System.out.println("\n0 - back");
@@ -142,7 +154,7 @@ public class Chat {
         } while(invalid_option);
 
         return new Event(Main.UserRequest.SELECT_MESSAGE, ((user_option == 0) ? "0"
-                : Integer.toString(messages.get(user_option).getId())));
+                : Integer.toString(messages.get(user_option - 1).getId())));
     }
 
     public static Event selectedMessage(Message message) {
@@ -169,7 +181,17 @@ public class Chat {
 
         } while(invalid_option);
 
-        return new Event(Main.UserRequest.SELECTED_MESSAGE, Integer.toString(user_option));
+        return new Event(Main.UserRequest.SELECTED_MESSAGE, Integer.toString(user_option)
+                , Integer.toString(message.getId()), message.getMessage());
 
+    }
+
+    public static Event replyMessage(String message_replying_to, String id_replying_to) {
+        System.out.println(UI.ANSI_BLUE + "\n--------------------SelectMessage--------------------\n" + UI.ANSI_RESET);
+        System.out.println("replying to " + message_replying_to + "\n");
+
+        System.out.print("message : ");
+        String message = UI.scanner.nextLine();
+        return new Event(Main.UserRequest.REPLY_MESSAGE, message, id_replying_to);
     }
 }
