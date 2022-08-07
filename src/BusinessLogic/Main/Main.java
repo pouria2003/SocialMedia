@@ -11,6 +11,7 @@ import Exceptions.DataBaseExceptions.*;
 import UI.MyProfile;
 import UI.Profile;
 import UI.Search;
+import UI.SignIn;
 
 import java.sql.SQLException;
 
@@ -53,7 +54,9 @@ public class Main {
         NEW_CHAT,
         SELECT_MESSAGE,
         SELECTED_MESSAGE,
-        REPLY_MESSAGE
+        REPLY_MESSAGE,
+        CHECK_SECURITY_QUESTIONS,
+        CHANGE_PASSWORD
     }
 
     /// main() here function as an event handler
@@ -94,6 +97,8 @@ public class Main {
                     case SELECT_MESSAGE -> selectMessage();
                     case SELECTED_MESSAGE -> selectedMessage();
                     case REPLY_MESSAGE -> replyMessage();
+                    case CHECK_SECURITY_QUESTIONS -> checkSecurityQuestions();
+                    case CHANGE_PASSWORD -> changePassword();
                 }
             } catch (SQLException e) {
                 /// DeBug
@@ -180,15 +185,27 @@ public class Main {
             else if (str.startsWith("password="))
                 password = str.substring(9);
         }
-        try {
-            user = DataBase.ReadUser.readUser(username, password);
-            response = () -> UI.HomePage.homePage();
-        } catch (UsernameNotExistException ex) {
-            response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.USERNAME_NOT_FOUND);
-        } catch (WrongPasswordException ex) {
-            response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.WRONG_PASSWORD);
-        } catch (SQLException ex) {
-            response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.DATA_BASE);
+        if(password.equals("0")) {
+            try {
+                user = ReadUser.readUser(username, null);
+                response = () -> UI.SignIn.checkSecurityQuestions();
+            } catch (SQLException e) {
+                // DeBug
+                e.printStackTrace();
+                UI.UI.dataBaseException();
+            }
+        }
+        else {
+            try {
+                user = DataBase.ReadUser.readUser(username, password);
+                response = () -> UI.HomePage.homePage();
+            } catch (UsernameNotExistException ex) {
+                response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.USERNAME_NOT_FOUND);
+            } catch (WrongPasswordException ex) {
+                response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.WRONG_PASSWORD);
+            } catch (SQLException ex) {
+                response = () -> UI.SignIn.signIn(UI.SignIn.SignInSituation.DATA_BASE);
+            }
         }
     }
 
@@ -612,6 +629,37 @@ public class Main {
         }
     }
 
+    private static void checkSecurityQuestions() {
+        try {
+            if(ReadUser.securityAnswers(user.getUsername(), event.data[0], event.data[1], event.data[2])) {
+                response = () -> UI.SignIn.changePassword(false);
+            }
+            else {
+                response = () -> UI.SignIn.signIn(SignIn.SignInSituation.WRONG_SECURITY_ANSWER);
+            }
+        } catch (SQLException e) {
+            // DeBug
+            e.printStackTrace();
+            UI.UI.dataBaseException();
+        }
+    }
+
+    private static void changePassword() {
+        try {
+            BusinessLogic.User.User.PasswordValidation(event.data[0]);
+            DataBase.ReadUser.resetPassword(user.getUsername(), event.data[0]);
+            user = DataBase.ReadUser.readUser(user.getUsername(), event.data[0]);
+            response = () -> UI.HomePage.homePage();
+        }
+        catch(IllegalStateException ex ) {
+            response = () -> UI.SignIn.changePassword(true);
+        } catch (SQLException e) {
+            // DeBug
+            e.printStackTrace();
+            UI.UI.dataBaseException();
+        }
+    }
+
     public static void exitProgram(int code) {
         System.exit(code);
     }
@@ -627,5 +675,4 @@ public class Main {
             return null;
         }
     }
-
 }

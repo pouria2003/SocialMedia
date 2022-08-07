@@ -32,4 +32,21 @@ public class ReadUser {
         statement.close();
         return user;
     }
+
+    public static boolean securityAnswers(String username, String sec_ans1
+            , String sec_ans2, String sec_ans3) throws SQLException {
+        Statement statement = DBConnection.getInstance().getConnection().createStatement();
+        ResultSet resultset = statement.executeQuery("SELECT SecurityAnswer1" +
+                ", SecurityAnswer2, SecurityAnswer3 FROM Users WHERE Username = '" + username + "';");
+        return resultset.next() && resultset.getString("SecurityAnswer1").equals(sec_ans1)
+                && resultset.getString("SecurityAnswer2").equals(sec_ans2)
+                && resultset.getString("SecurityAnswer3").equals(sec_ans3);
+    }
+
+    public static void resetPassword(String username, String new_password) throws SQLException {
+        Statement statement = DBConnection.getInstance().getConnection().createStatement();
+        statement.executeUpdate("UPDATE Users SET Password = '" + new_password + "' " +
+                "WHERE Username = '" + username + "';");
+    }
+
 }
