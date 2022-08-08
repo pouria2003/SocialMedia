@@ -104,4 +104,28 @@ public class Chat {
         }
 
     }
+
+    public static ArrayList<Message> searchInChat(String chat_name, String searched_string) throws SQLException {
+
+        Statement statement = DBConnection.getInstance().getConnection().createStatement();
+        ResultSet resultset = statement.executeQuery("SELECT Content, Username, id, RepliedTo " +
+                "FROM Messages WHERE ChatName = '" + chat_name + "' AND Content LIKE '%" +
+                searched_string + "%' ORDER BY id ASC;");
+
+        ArrayList<Message> messages = new ArrayList<Message>();
+        while(resultset.next()) {
+            resultset.getInt("RepliedTo");
+            if(resultset.wasNull()) {
+                messages.add(new Message(resultset.getString("Content")
+                        , resultset.getString("Username"), resultset.getInt("id")));
+            }
+            else {
+                messages.add(new Message(resultset.getString("Content")
+                        , resultset.getString("Username"), resultset.getInt("id")
+                        , resultset.getInt("RepliedTo")));
+            }
+        }
+
+        return messages;
+    }
 }

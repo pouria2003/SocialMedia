@@ -7,6 +7,11 @@ import BusinessLogic.Message.Message;
 import java.util.ArrayList;
 
 public class Chat {
+
+    public enum SearchResultSituation {
+        NORMAL, FIRST, LAST, NO_RESULT, ONLY_ONE
+    }
+
     public static Event chats(ArrayList<String> chats, String username) {
         int user_option = 0;
         boolean invalid_option = false;
@@ -68,16 +73,17 @@ public class Chat {
 
             for (int i = 0; i < messages.size(); ++i) {
                 if(messages.get(i).getRepliedTo() == -1) {
-                    System.out.println(messages.get(i).getUsername() + " : "
+                    System.out.println(UI.ANSI_BLUE + messages.get(i).getUsername() + UI.ANSI_RESET + " : "
                             + messages.get(i).getMessage());
                 }
                 else {
                     try {
-                        System.out.println(messages.get(i).getUsername() + " : "
-                                + messages.get(i).getMessage() +
-                                "  ( replying to : " + Main.getMessage(messages.get(i).getRepliedTo()).getMessage() + " )");
+                        System.out.println(UI.ANSI_BLUE + messages.get(i).getUsername() + UI.ANSI_RESET + " : "
+                                + messages.get(i).getMessage() + UI.ANSI_GREEN +
+                                "  ( replying to : " + Main.getMessage(messages.get(i).getRepliedTo()).getMessage()
+                                        + " )" + UI.ANSI_RESET);
                     } catch (NullPointerException ex) {
-                        System.out.println(messages.get(i).getUsername() + " : "
+                        System.out.println(UI.ANSI_BLUE + messages.get(i).getUsername() + UI.ANSI_RESET + " : "
                                 + messages.get(i).getMessage());
                     }
                 }
@@ -85,7 +91,8 @@ public class Chat {
 
             System.out.println("\n0 - back");
             System.out.println("1 - new message");
-            System.out.println("2 - select\n");
+            System.out.println("2 - select");
+            System.out.println("3 - search\n");
 
             if(invalid_option)
                 System.out.println(UI.ANSI_RED + "invalid option given" + UI.ANSI_RESET);
@@ -94,7 +101,7 @@ public class Chat {
 
             try {
                 user_option = Integer.parseInt(UI.scanner.nextLine());
-                invalid_option = user_option < 0 || user_option > 2;
+                invalid_option = user_option < 0 || user_option > 3;
             } catch (NumberFormatException ex) {
                 invalid_option = true;
             }
@@ -103,6 +110,126 @@ public class Chat {
         return  new Event(Main.UserRequest.MESSAGES, Integer.toString(user_option));
     }
 
+    public static Event searchMessage() {
+        UI.clearScreen();
+        System.out.println(UI.ANSI_BLUE + "\n--------------------Search--------------------\n" + UI.ANSI_RESET);
+
+        String searching_string;
+        System.out.print("search for : ");
+        searching_string = UI.scanner.nextLine();
+
+        return new Event(Main.UserRequest.SEARCH_MESSAGE, searching_string);
+    }
+
+    public static Event searchResult(Message message, SearchResultSituation situation) {
+        int user_option = 0;
+        boolean invalid_option = false;
+        do {
+            UI.clearScreen();
+            System.out.println(UI.ANSI_BLUE + "\n--------------------SearchResult--------------------\n" + UI.ANSI_RESET);
+
+            if(invalid_option)
+                System.out.println(UI.ANSI_RED + "invalid option given" + UI.ANSI_RESET);
+
+            if(situation == SearchResultSituation.NO_RESULT) {
+                System.out.println("no result");
+            }
+            else {
+                if (message.getRepliedTo() == -1) {
+                    System.out.println(UI.ANSI_BLUE + message.getUsername() + UI.ANSI_RESET + " : "
+                            + message.getMessage() + "\n");
+                } else {
+                    try {
+                        System.out.println(UI.ANSI_BLUE + message.getUsername() + UI.ANSI_RESET + " : "
+                                + message.getMessage() + UI.ANSI_GREEN +
+                                "  ( replying to : " + Main.getMessage(message.getRepliedTo()).getMessage() + " )\n" + UI.ANSI_RESET);
+                    } catch (NullPointerException ex) {
+                        System.out.println(UI.ANSI_BLUE + message.getUsername() + UI.ANSI_RESET + " : "
+                                + message.getMessage() + "\n");
+                    }
+                }
+            }
+
+            switch (situation) {
+                case NORMAL:
+                    System.out.println("0 - back");
+                    System.out.println("1 - select");
+                    System.out.println("2 - previous");
+                    System.out.println("3 - next");
+
+                    try {
+                        user_option = Integer.parseInt(UI.scanner.nextLine());
+                        invalid_option = user_option < 0 || user_option > 3;
+                    } catch (NumberFormatException ex) {
+                        invalid_option = true;
+                    }
+
+                    break;
+
+                case FIRST:
+                    System.out.println("0 - back");
+                    System.out.println("1 - select");
+                    System.out.println("2 - next");
+
+                    try {
+                        user_option = Integer.parseInt(UI.scanner.nextLine());
+                        invalid_option = user_option < 0 || user_option > 2;
+
+                        if(user_option == 2)
+                            user_option = 3; // for simplification 2 means prev and 3 means next
+
+                    } catch (NumberFormatException ex) {
+                        invalid_option = true;
+                    }
+
+                    break;
+
+                case LAST:
+                    System.out.println("0 - back");
+                    System.out.println("1 - select");
+                    System.out.println("2 - previous");
+
+                    try {
+                        user_option = Integer.parseInt(UI.scanner.nextLine());
+                        invalid_option = user_option < 0 || user_option > 2;
+
+
+                    } catch (NumberFormatException ex) {
+                        invalid_option = true;
+                    }
+
+                    break;
+
+                case ONLY_ONE:
+                    System.out.println("0 - back");
+                    System.out.println("1 - select");
+
+                    try {
+                        user_option = Integer.parseInt(UI.scanner.nextLine());
+                        invalid_option = user_option < 0 || user_option > 1;
+
+                    } catch (NumberFormatException ex) {
+                        invalid_option = true;
+                    }
+
+                    break;
+                case NO_RESULT:
+                    System.out.println("0 - back");
+
+                    try {
+                        user_option = Integer.parseInt(UI.scanner.nextLine());
+                        invalid_option = user_option != 0;
+                    } catch (NumberFormatException ex) {
+                        invalid_option = true;
+                    }
+
+                    break;
+            }
+
+        } while (invalid_option);
+
+        return new Event(Main.UserRequest.SEARCH_RESULT, Integer.toString(user_option));
+    }
     public static Event newMessage() {
         System.out.println(UI.ANSI_BLUE + "\n--------------------NewMessage--------------------\n" + UI.ANSI_RESET);
 

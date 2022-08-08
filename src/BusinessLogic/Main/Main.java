@@ -12,8 +12,10 @@ import UI.MyProfile;
 import UI.Profile;
 import UI.Search;
 import UI.SignIn;
+import UI.Chat.SearchResultSituation;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 interface Response {
     Event perform() throws SQLException;
@@ -27,6 +29,8 @@ public class Main {
     private static User searched_user;
     private static boolean my_post; // false means other users post or comment
     private static String chat_name; // save current chat name
+    private static ArrayList<Message> searched_messages;
+    private static int search_result_index;
 
     public enum UserRequest {
         START_PAGE,
@@ -56,7 +60,9 @@ public class Main {
         SELECTED_MESSAGE,
         REPLY_MESSAGE,
         CHECK_SECURITY_QUESTIONS,
-        CHANGE_PASSWORD
+        CHANGE_PASSWORD,
+        SEARCH_MESSAGE,
+        SEARCH_RESULT
     }
 
     /// main() here function as an event handler
@@ -99,6 +105,8 @@ public class Main {
                     case REPLY_MESSAGE -> replyMessage();
                     case CHECK_SECURITY_QUESTIONS -> checkSecurityQuestions();
                     case CHANGE_PASSWORD -> changePassword();
+                    case SEARCH_MESSAGE -> searchMessage();
+                    case SEARCH_RESULT -> searchResult();
                 }
             } catch (SQLException e) {
                 /// DeBug
@@ -549,6 +557,9 @@ public class Main {
         else if(event.data[0].equals("2")) {
             response = () -> UI.Chat.selectMessage(DataBase.Chat.getMessages(chat_name));
         }
+        else if(event.data[0].equals("3")) {
+            response = () -> UI.Chat.searchMessage();
+        }
     }
 
     private static void newMessage() {
@@ -657,6 +668,49 @@ public class Main {
             // DeBug
             e.printStackTrace();
             UI.UI.dataBaseException();
+        }
+    }
+
+    private static void searchMessage() {
+        try {
+            searched_messages = DataBase.Chat.searchInChat(chat_name, event.data[0]);
+            search_result_index = searched_messages.size() - 1;
+            if(searched_messages.size() == 0) {
+                response = () -> UI.Chat.searchResult(null, SearchResultSituation.NO_RESULT);
+            }
+            else if(searched_messages.size() == 1) {
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.ONLY_ONE);
+            }
+            else {
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.LAST);
+            }
+        } catch (SQLException e) {
+            // DeBug
+            e.printStackTrace();
+            UI.UI.dataBaseException();
+        }
+    }
+
+    private static void searchResult() {
+        if(event.data[0].equals("0")) {
+            response = () -> UI.Chat.messages(DataBase.Chat.getMessages(chat_name));
+        }
+        else if(event.data[0].equals("1")) {
+            response = () -> UI.Chat.selectedMessage(searched_messages.get(search_result_index));
+        }
+        else if(event.data[0].equals("2")) {
+            --search_result_index;
+            if(search_result_index == 0)
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.FIRST);
+            else
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.NORMAL);
+        }
+        else if(event.data[0].equals("3")) {
+            ++search_result_index;
+            if(search_result_index == searched_messages.size() - 1)
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.LAST);
+            else
+                response = () -> UI.Chat.searchResult(searched_messages.get(search_result_index), SearchResultSituation.NORMAL);
         }
     }
 
